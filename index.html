@@ -3,142 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standalone Local Storage App</title>
+    <title>Local Workout Tracker</title>
     <style>
+        :root {
+            --primary: #0071e3;
+            --primary-hover: #005bb5;
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --border: #e5e5e5;
+            --danger: #ff3b30;
+        }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 600px;
+            max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
-            background-color: #f5f5f7;
-            color: #1d1d1f;
+            background-color: var(--bg);
+            color: var(--text);
         }
-        .container {
-            background: white;
-            padding: 2rem;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
         }
-        textarea {
+        .form-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        @media (max-width: 600px) {
+            .form-group { grid-template-columns: 1fr; }
+        }
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+        input, select {
             width: 100%;
-            height: 150px;
-            padding: 10px;
+            padding: 8px;
             box-sizing: border-box;
             border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1rem;
-            resize: vertical;
+            border-radius: 6px;
+            font-size: 0.95rem;
         }
         button {
-            background-color: #0071e3;
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 10px 15px;
             font-size: 0.9rem;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-right: 5px;
-            margin-top: 10px;
+            font-weight: 500;
         }
-        button:hover { background-color: #005bb5; }
+        button:hover { background-color: var(--primary-hover); }
         button.secondary { background-color: #86868b; }
         button.secondary:hover { background-color: #6e6e73; }
+        button.danger { background-color: var(--danger); padding: 8px 12px; }
+        button.danger:hover { background-color: #d1271e; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background-color: #fafafa; font-weight: 600; }
+        
         .status {
-            margin-top: 10px;
             font-size: 0.85rem;
             color: #666;
             font-style: italic;
         }
-        .backup-section {
+        .backup-zone {
+            display: flex;
+            gap: 10px;
+            align-items: center;
             margin-top: 2rem;
             padding-top: 1rem;
-            border-top: 1px solid #e5e5e5;
+            border-top: 1px solid var(--border);
         }
         #fileInput { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Local Notebook</h2>
-    <p>Anything you type here saves automatically to your browser's local storage.</p>
-    
-    <textarea id="noteInput" placeholder="Type your notes here..."></textarea>
-    
-    <div>
-        <button id="saveBtn">Force Save</button>
-        <span id="statusLabel" class="status"></span>
-    </div>
+<div class="header">
+    <h1>🏋️‍♂️ Workout Tracker</h1>
+    <span id="statusLabel" class="status"></span>
+</div>
 
-    <div class="backup-section">
-        <h3>Data Backup (JSON)</h3>
-        <button id="exportBtn" class="secondary">Export to JSON File</button>
-        <button id="importBtn" class="secondary" onclick="document.getElementById('fileInput').click()">Import JSON File</button>
-        <input type="file" id="fileInput" accept=".json">
+<div class="card">
+    <h3>Log Exercise</h3>
+    <form id="workoutForm" class="form-group">
+        <div>
+            <label for="exercise">Exercise Name</label>
+            <input type="text" id="exercise" placeholder="e.g., Bench Press, Squat" required>
+        </div>
+        <div>
+            <label for="weight">Weight (lbs/kg)</label>
+            <input type="number" id="weight" placeholder="0" step="any" required>
+        </div>
+        <div>
+            <label for="sets">Sets</label>
+            <input type="number" id="sets" placeholder="0" required>
+        </div>
+        <div>
+            <label for="reps">Reps</label>
+            <input type="number" id="reps" placeholder="0" required>
+        </div>
+        <div>
+            <button type="submit">Add Log</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>History Log</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Exercise</th>
+                    <th>Weight</th>
+                    <th>Sets</th>
+                    <th>Reps</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="logTableBody">
+                </tbody>
+        </table>
     </div>
 </div>
 
+<div class="backup-zone">
+    <button id="exportBtn" class="secondary">Export JSON Backup</button>
+    <button id="importBtn" class="secondary" onclick="document.getElementById('fileInput').click()">Import JSON Backup</button>
+    <input type="file" id="fileInput" accept=".json">
+</div>
+
 <script>
-    const noteInput = document.getElementById('noteInput');
-    const saveBtn = document.getElementById('saveBtn');
+    const workoutForm = document.getElementById('workoutForm');
+    const logTableBody = document.getElementById('logTableBody');
     const statusLabel = document.getElementById('statusLabel');
     const exportBtn = document.getElementById('exportBtn');
     const fileInput = document.getElementById('fileInput');
 
-    const STORAGE_KEY = 'standalone_app_data';
+    const STORAGE_KEY = 'workout_tracker_data';
+    let workoutHistory = [];
 
-    // 1. LOAD DATA ON INITIALIZATION
+    // Initialize & Load Data
     window.addEventListener('DOMContentLoaded', () => {
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
             try {
-                const parsed = JSON.parse(savedData);
-                noteInput.value = parsed.text || '';
-                showStatus('Data loaded from browser storage.');
+                workoutHistory = JSON.parse(savedData);
+                renderLogs();
+                flashStatus('Loaded your latest local logs.');
             } catch (e) {
-                console.error("Error parsing local storage data", e);
+                console.error("Failed to read local storage", e);
             }
         }
     });
 
-    // 2. AUTO-SAVE FUNCTION
-    function saveData() {
-        const dataToSave = {
-            text: noteInput.value,
-            lastSaved: new Date().toISOString()
+    // Handle Form Submission
+    workoutForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const newLog = {
+            id: Date.now(),
+            date: new Date().toLocaleDateString(),
+            exercise: document.getElementById('exercise').value.trim(),
+            weight: document.getElementById('weight').value,
+            sets: document.getElementById('sets').value,
+            reps: document.getElementById('reps').value
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        showStatus('Saved automatically.');
-    }
 
-    // Save on keyup (with a slight debounce if you want, but simple for now)
-    noteInput.addEventListener('input', saveData);
-    saveBtn.addEventListener('click', () => {
-        saveData();
-        showStatus('Manually saved!');
+        workoutHistory.unshift(newLog); // Adds new workouts to the top of the list
+        saveToLocalStorage();
+        renderLogs();
+        workoutForm.reset();
+        flashStatus('Workout logged!');
     });
 
-    // 3. EXPORT TO JSON FILE
-    exportBtn.addEventListener('click', () => {
-        const dataStr = localStorage.getItem(STORAGE_KEY) || JSON.stringify({ text: noteInput.value, lastSaved: new Date().toISOString() });
+    // Render Data to Table Rows
+    function renderLogs() {
+        logTableBody.innerHTML = '';
         
-        // Create a blob and an invisible anchor tag to trigger a download window
+        if (workoutHistory.length === 0) {
+            logTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">No workouts logged yet. Get after it!</td></tr>`;
+            return;
+        }
+
+        workoutHistory.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${log.date}</td>
+                <td><strong>${escapeHtml(log.exercise)}</strong></td>
+                <td>${log.weight}</td>
+                <td>${log.sets}</td>
+                <td>${log.reps}</td>
+                <td><button class="danger" onclick="deleteLog(${log.id})">Delete</button></td>
+            `;
+            logTableBody.appendChild(tr);
+        });
+    }
+
+    // Delete a specific log
+    window.deleteLog = function(id) {
+        workoutHistory = workoutHistory.filter(log => log.id !== id);
+        saveToLocalStorage();
+        renderLogs();
+        flashStatus('Log deleted.');
+    }
+
+    // Save current active state to Local Storage
+    function saveToLocalStorage() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workoutHistory));
+    }
+
+    // Export Data to a external JSON File download
+    exportBtn.addEventListener('click', () => {
+        if(workoutHistory.length === 0) {
+            alert("No logs available to export.");
+            return;
+        }
+        const dataStr = JSON.stringify(workoutHistory, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `notebook-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `workout-backup-${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a);
         a.click();
         
-        // Clean up
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showStatus('JSON file exported.');
+        flashStatus('Backup file exported!');
     });
 
-    // 4. IMPORT FROM JSON FILE
+    // Import Data via a file selector upload
     fileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -148,30 +271,33 @@
             try {
                 const importedData = JSON.parse(e.target.result);
                 
-                // Validate structure loosely
-                if (importedData && typeof importedData.text === 'string') {
-                    noteInput.value = importedData.text;
-                    // Save the imported data straight to localStorage
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
-                    showStatus('JSON imported successfully!');
+                // Light structural validation to confirm array matching format
+                if (Array.isArray(importedData)) {
+                    workoutHistory = importedData;
+                    saveToLocalStorage();
+                    renderLogs();
+                    flashStatus('Data backup restored successfully!');
                 } else {
-                    alert('Invalid JSON file structure.');
+                    alert('Invalid file format. Ensure you are uploading a valid workout backup.');
                 }
             } catch (err) {
-                alert('Error reading JSON file. Make sure it is valid JSON.');
+                alert('Could not process JSON. File may be corrupted.');
             }
         };
         reader.readAsText(file);
-        // Clear input value so the same file can be uploaded again if needed
-        fileInput.value = '';
+        fileInput.value = ''; // Reset target input element
     });
 
-    // Helper status function
-    function showStatus(text) {
+    // Utility Helpers
+    function flashStatus(text) {
         statusLabel.textContent = text;
         setTimeout(() => {
             if(statusLabel.textContent === text) statusLabel.textContent = '';
-        }, 3000);
+        }, 3500);
+    }
+
+    function escapeHtml(string) {
+        return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 </script>
 

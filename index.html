@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workout Routine Tracker & Analytics</title>
+    <title>Advanced Workout Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -76,7 +76,7 @@
         button.success:hover { background-color: #28a745; }
         button.secondary { background-color: #86868b; }
         button.secondary:hover { background-color: #6e6e73; }
-        button.danger { background-color: var(--danger); padding: 6px 12px; border-radius: 6px;}
+        button.danger { background-color: var(--danger); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;}
         button.danger:hover { background-color: #d1271e; }
         
         .routine-chip {
@@ -102,36 +102,48 @@
             font-size: 0.95rem;
             color: #333;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0.5rem;
-        }
-        th, td {
-            text-align: left;
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-        }
-        th { background-color: #fafafa; font-weight: 600; }
         
-        /* Inline Editing Fields Styling */
-        .editable-cell {
-            font-weight: bold;
-            background-color: #fafffa;
-            border: 1px dashed #34c759;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            width: 50px;
-            text-align: center;
-            display: inline-block;
+        /* Workout Block Styling */
+        .exercise-log-block {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fafafa;
         }
-        .editable-cell:focus {
-            background-color: #ffffff;
+        .exercise-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        .set-row {
+            display: grid;
+            grid-template-columns: 0.5fr 1.5fr 1.5fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .set-number {
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .editable-input {
+            width: 100%;
+            padding: 6px;
+            margin-bottom: 0;
+            border: 1px dashed #34c759;
+            background: #fafffa;
+            text-align: center;
+            font-weight: bold;
+        }
+        .editable-input:focus {
             border: 1px solid var(--primary);
+            background: white;
             outline: none;
-            box-shadow: 0 0 4px rgba(0,113,227,0.3);
         }
 
         .status { font-size: 0.85rem; color: #666; font-style: italic; }
@@ -142,7 +154,7 @@
 <body>
 
 <div class="header">
-    <h1>🏋️‍♂️ Live Routine Tracker</h1>
+    <h1>🏋️‍♂️ Multi-Weight Tracker</h1>
     <span id="statusLabel" class="status"></span>
 </div>
 
@@ -166,38 +178,23 @@
 
 <div class="grid-2">
     <div class="card">
-        <h3>⚡ Start a Workout</h3>
+        <h3>⚡ Start an Exercise</h3>
         <label for="activeRoutineSelect">Select a Routine to Load</label>
         <select id="activeRoutineSelect"><option value="">-- Select Routine --</option></select>
         
         <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
         
         <form id="workoutForm">
-            <label for="workoutExerciseSelect">Exercise to Log</label>
+            <label for="workoutExerciseSelect">Exercise to Add</label>
             <select id="workoutExerciseSelect"><option value="">-- Load a routine first or type below --</option></select>
             <input type="text" id="customExerciseFallback" placeholder="Or type any exercise manually...">
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; margin-bottom: 15px;">
-                <div>
-                    <label for="weight">Weight</label>
-                    <input type="number" id="weight" placeholder="0" step="any" required>
-                </div>
-                <div>
-                    <label for="sets">Sets</label>
-                    <input type="number" id="sets" placeholder="0" required>
-                </div>
-                <div>
-                    <label for="reps">Reps</label>
-                    <input type="number" id="reps" placeholder="0" required>
-                </div>
-            </div>
-            <button type="submit" class="success" style="width: 100%;">Initialize Log Entry</button>
+            <button type="submit" class="success" style="width: 100%; margin-top: 5px;">Add Exercise to Today's Tracker</button>
         </form>
     </div>
 
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">Strength Insights</h3>
+            <h3 style="margin: 0;">Peak Strength Insights</h3>
             <select id="chartExerciseFilter" style="width: auto; margin-bottom: 0; padding: 4px 8px; font-size: 0.85rem;">
                 <option value="">Select Exercise</option>
             </select>
@@ -209,8 +206,8 @@
 </div>
 
 <div class="card">
-    <h3>Weekly History Log <span style="font-size: 0.8rem; font-weight: normal; color:#666;">(Tap green boxes to edit values live!)</span></h3>
-    <div id="weeklyLogContainer" style="overflow-x: auto;"></div>
+    <h3>Weekly History Log <span style="font-size: 0.8rem; font-weight: normal; color:#666;">(Adjust numbers directly as you train!)</span></h3>
+    <div id="weeklyLogContainer"></div>
 </div>
 
 <div class="backup-zone">
@@ -220,8 +217,8 @@
 </div>
 
 <script>
-    const STORAGE_KEY_HISTORY = 'routine_tracker_history';
-    const STORAGE_KEY_ROUTINES = 'routine_tracker_manifest';
+    const STORAGE_KEY_HISTORY = 'multi_weight_tracker_history';
+    const STORAGE_KEY_ROUTINES = 'multi_weight_tracker_manifest';
 
     let workoutHistory = [];
     let routines = {}; 
@@ -255,7 +252,7 @@
 
         updateRoutinesUI();
         updateHistoryUI();
-        flashStatus('Database synchronized.');
+        flashStatus('Systems synchronized.');
     });
 
     // ROUTINE BUILDER METHODS
@@ -263,7 +260,6 @@
         const name = routineNameInput.value.trim();
         if(!name) return alert("Enter a routine name.");
         if(routines[name]) return alert("Routine already exists.");
-        
         routines[name] = [];
         routineNameInput.value = '';
         saveRoutines();
@@ -273,7 +269,6 @@
     addExerciseToRoutineBtn.addEventListener('click', () => {
         const selectedRoutine = routineSelectAssign.value;
         const exName = assignExerciseName.value.trim();
-        
         if(!selectedRoutine || !exName) return alert("Select a routine and enter an exercise.");
         if(!routines[selectedRoutine].includes(exName)) {
             routines[selectedRoutine].push(exName);
@@ -313,7 +308,7 @@
         routines[selected].forEach(ex => workoutExerciseSelect.add(new Option(ex, ex)));
     });
 
-    // LOGGING WORKOUT progress 
+    // INITIALIZE EXERCISE ENGINE
     workoutForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -322,20 +317,16 @@
         if (customFallback) chosenExercise = customFallback;
         if(!chosenExercise) return alert("Select or type an exercise.");
 
-        const weight = parseFloat(document.getElementById('weight').value);
-        const sets = parseInt(document.getElementById('sets').value);
-        const reps = parseInt(document.getElementById('reps').value);
-
+        // Create an exercise entry with one default starting set row
         const log = {
             id: Date.now(),
             date: new Date().toLocaleDateString(),
             rawDateString: new Date().toISOString(),
             exerciseKey: chosenExercise.trim().toLowerCase(),
             exerciseDisplay: chosenExercise.trim(),
-            weight: weight,
-            sets: sets,
-            reps: reps,
-            oneRepMax: calculate1RM(weight, reps)
+            sets: [
+                { setIndex: 1, weight: 0, reps: 0 }
+            ]
         };
 
         workoutHistory.unshift(log);
@@ -343,12 +334,8 @@
         updateHistoryUI();
         
         customExerciseFallback.value = '';
-        flashStatus('Initial block recorded!');
+        flashStatus('Exercise structure added!');
     });
-
-    function calculate1RM(weight, reps) {
-        return reps === 1 ? weight : Math.round(weight / (1.0278 - (0.0278 * reps)));
-    }
 
     function saveHistory() {
         localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(workoutHistory));
@@ -374,40 +361,62 @@
         if(uniqueKeys.includes(currentSelection)) chartExerciseFilter.value = currentSelection;
     }
 
-    // LIVE INLINE CELL EDITING CONTEXT
-    window.updateInlineField = function(element, id, property) {
-        let value = parseFloat(element.innerText);
-        if (isNaN(value) || value < 0) {
-            alert("Please enter a valid positive number.");
-            updateHistoryUI();
-            return;
-        }
-
-        // Locate target node reference index matching row id
-        const targetLog = workoutHistory.find(l => l.id === id);
-        if (targetLog) {
-            targetLog[property] = value;
-            // Recalculate 1-Rep Max instantly on change
-            targetLog.oneRepMax = calculate1RM(targetLog.weight, targetLog.reps);
+    // MULTI-SET SYSTEM INTERACTION
+    window.addSetToExercise = function(exerciseId) {
+        const log = workoutHistory.find(l => l.id === exerciseId);
+        if(log) {
+            const nextIndex = log.sets.length + 1;
+            // Copy weight/reps from previous set as convenient defaults
+            const lastSet = log.sets[log.sets.length - 1];
+            log.sets.push({
+                setIndex: nextIndex,
+                weight: lastSet ? lastSet.weight : 0,
+                reps: lastSet ? lastSet.reps : 0
+            });
             saveHistory();
-            
-            // Fast refresh without stealing keyboard focus if possible
-            populateAnalyticsDropdown();
-            updateChart();
-            
-            // Dynamically refresh the computed 1RM text field directly on the current row item
-            const row = element.parentElement.parentElement;
-            const cells = row.getElementsByTagName('td');
-            if(cells[4]) cells[4].innerText = targetLog.oneRepMax ? targetLog.oneRepMax + ' max' : '--';
-            
-            flashStatus('Saved change live.');
+            updateHistoryUI();
+        }
+    };
+
+    window.removeSetFromExercise = function(exerciseId, setIndex) {
+        const log = workoutHistory.find(l => l.id === exerciseId);
+        if(log && log.sets.length > 1) {
+            log.sets = log.sets.filter(s => s.setIndex !== setIndex);
+            // Re-index sets numbers
+            log.sets.forEach((s, idx) => s.setIndex = idx + 1);
+            saveHistory();
+            updateHistoryUI();
+        }
+    };
+
+    window.updateSetField = function(inputNode, exerciseId, setIndex, fieldProperty) {
+        const val = parseFloat(inputNode.value);
+        if(isNaN(val) || val < 0) return;
+
+        const log = workoutHistory.find(l => l.id === exerciseId);
+        if(log) {
+            const targetSet = log.sets.find(s => s.setIndex === setIndex);
+            if(targetSet) {
+                targetSet[fieldProperty] = val;
+                saveHistory();
+                // Update graph tracking on live change blur
+                updateChart();
+            }
+        }
+    };
+
+    window.deleteEntireExercise = function(id) {
+        if(confirm("Delete this exercise and all its logged sets?")) {
+            workoutHistory = workoutHistory.filter(l => l.id !== id);
+            saveHistory();
+            updateHistoryUI();
         }
     };
 
     function renderChronologicalWeeks() {
         weeklyLogContainer.innerHTML = '';
         if(workoutHistory.length === 0) {
-            weeklyLogContainer.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#999;">No logged workouts yet.</div>';
+            weeklyLogContainer.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#999;">No active records.</div>';
             return;
         }
 
@@ -422,43 +431,50 @@
             const items = weeklyGroups[wk];
             const sampleDate = new Date(items[0].rawDateString || items[0].id);
             
+            const weekWrapper = document.createElement('div');
             const header = document.createElement('div');
             header.className = 'week-heading';
             header.textContent = `📅 Week of ${getStartOfWeekString(sampleDate)} (${wk})`;
-            
-            const table = document.createElement('table');
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Exercise</th>
-                        <th>Weight</th>
-                        <th>Sets</th>
-                        <th>Reps</th>
-                        <th>Est. 1RM</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            `;
-            const tbody = table.querySelector('tbody');
-            
+            weekWrapper.appendChild(header);
+
             items.forEach(log => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${log.date}</td>
-                    <td><strong>${escapeHtml(log.exerciseDisplay)}</strong></td>
-                    <td><div class="editable-cell" contenteditable="true" inputmode="decimal" onblur="updateInlineField(this, ${log.id}, 'weight')">${log.weight}</div></td>
-                    <td><div class="editable-cell" contenteditable="true" inputmode="numeric" onblur="updateInlineField(this, ${log.id}, 'sets')">${log.sets}</div></td>
-                    <td><div class="editable-cell" contenteditable="true" inputmode="numeric" onblur="updateInlineField(this, ${log.id}, 'reps')">${log.reps}</div></td>
-                    <td style="color:#666;">${log.oneRepMax ? log.oneRepMax + ' max' : '--'}</td>
-                    <td><button class="danger" onclick="deleteLog(${log.id})">Del</button></td>
+                const block = document.createElement('div');
+                block.className = 'exercise-log-block';
+
+                // Title row block
+                let setsRowsHtml = '';
+                log.sets.forEach(s => {
+                    setsRowsHtml += `
+                        <div class="set-row">
+                            <span class="set-number">Set ${s.setIndex}</span>
+                            <div>
+                                <input type="number" class="editable-input" value="${s.weight}" placeholder="Lbs/Kg" inputmode="decimal" onchange="updateSetField(this, ${log.id}, ${s.setIndex}, 'weight')">
+                            </div>
+                            <div>
+                                <input type="number" class="editable-input" value="${s.reps}" placeholder="Reps" inputmode="numeric" onchange="updateSetField(this, ${log.id}, ${s.setIndex}, 'reps')">
+                            </div>
+                            <div>
+                                ${log.sets.length > 1 ? `<button class="danger" onclick="removeSetFromExercise(${log.id}, ${s.setIndex})">✕</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                block.innerHTML = `
+                    <div class="exercise-title-row">
+                        <span><strong>${escapeHtml(log.exerciseDisplay)}</strong> <span style="font-size:0.8rem; color:#666; font-weight:normal;">(${log.date})</span></span>
+                        <button class="danger" style="padding:4px 8px;" onclick="deleteEntireExercise(${log.id})">Delete Entry</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 0.5fr 1.5fr 1.5fr auto; gap:8px; margin-bottom:4px; font-size:0.75rem; font-weight:bold; color:#666; text-align:center;">
+                        <div></div><div>Weight</div><div>Reps</div><div></div>
+                    </div>
+                    ${setsRowsHtml}
+                    <button class="secondary" style="width:100%; font-size:0.8rem; padding:6px; margin-top:8px;" onclick="addSetToExercise(${log.id})">➕ Add Next Set (Multi-Weight)</button>
                 `;
-                tbody.appendChild(tr);
+                weekWrapper.appendChild(block);
             });
 
-            weeklyLogContainer.appendChild(header);
-            weeklyLogContainer.appendChild(table);
+            weeklyLogContainer.appendChild(weekWrapper);
         });
     }
 
@@ -476,13 +492,7 @@
         return new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
     }
 
-    window.deleteLog = function(id) {
-        workoutHistory = workoutHistory.filter(l => l.id !== id);
-        saveHistory();
-        updateHistoryUI();
-    };
-
-    // CHART GENERATION
+    // ANALYTICS PEAK WEIGHT CALCULATIONS
     function updateChart() {
         const ctx = document.getElementById('progressChart').getContext('2d');
         const selectedKey = chartExerciseFilter.value;
@@ -495,14 +505,19 @@
             .sort((a,b) => new Date(a.rawDateString || a.id) - new Date(b.rawDateString || b.id));
 
         const labels = filtered.map(l => l.date);
-        const points = filtered.map(l => l.oneRepMax || l.weight);
+        
+        // Grab the single highest weight used across ALL sets inside that entry block
+        const peakPoints = filtered.map(l => {
+            const weights = l.sets.map(s => s.weight || 0);
+            return Math.max(...weights, 0);
+        });
 
         progressChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    data: points,
+                    data: peakPoints,
                     borderColor: '#0071e3',
                     backgroundColor: 'rgba(0, 113, 227, 0.05)',
                     borderWidth: 2,
@@ -531,7 +546,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `workout-live-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `workout-multi-weight-backup-${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -554,7 +569,7 @@
                     updateHistoryUI();
                     flashStatus('Data Restored!');
                 }
-            } catch(err) { alert("Failed to interpret data file."); }
+            } catch(err) { alert("Failed to interpret file."); }
         };
         reader.readAsText(file);
         fileInput.value = '';

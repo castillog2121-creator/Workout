@@ -114,6 +114,26 @@
             font-size: 0.9rem;
         }
         th { background-color: #fafafa; font-weight: 600; }
+        
+        /* Inline Editing Fields Styling */
+        .editable-cell {
+            font-weight: bold;
+            background-color: #fafffa;
+            border: 1px dashed #34c759;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            width: 50px;
+            text-align: center;
+            display: inline-block;
+        }
+        .editable-cell:focus {
+            background-color: #ffffff;
+            border: 1px solid var(--primary);
+            outline: none;
+            box-shadow: 0 0 4px rgba(0,113,227,0.3);
+        }
+
         .status { font-size: 0.85rem; color: #666; font-style: italic; }
         .backup-zone { display: flex; gap: 10px; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
         #fileInput { display: none; }
@@ -122,11 +142,10 @@
 <body>
 
 <div class="header">
-    <h1>🏋️‍♂️ Routine Planner & Tracker</h1>
+    <h1>🏋️‍♂️ Live Routine Tracker</h1>
     <span id="statusLabel" class="status"></span>
 </div>
 
-<!-- SECTION 1: ROUTINE BUILDER -->
 <div class="card">
     <h3>🛠️ Create Custom Routine</h3>
     <div class="grid-2">
@@ -145,9 +164,7 @@
     <div id="routineManifest" style="margin-top: 15px; font-size: 0.9rem;"></div>
 </div>
 
-<!-- SECTION 2: TRACKING & CHARTING -->
 <div class="grid-2">
-    <!-- Log Workout from Routine Template -->
     <div class="card">
         <h3>⚡ Start a Workout</h3>
         <label for="activeRoutineSelect">Select a Routine to Load</label>
@@ -174,11 +191,10 @@
                     <input type="number" id="reps" placeholder="0" required>
                 </div>
             </div>
-            <button type="submit" class="success" style="width: 100%;">Log Set Progress</button>
+            <button type="submit" class="success" style="width: 100%;">Initialize Log Entry</button>
         </form>
     </div>
 
-    <!-- Analytics Engine Graph -->
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="margin: 0;">Strength Insights</h3>
@@ -192,13 +208,11 @@
     </div>
 </div>
 
-<!-- SECTION 3: WEEKLY HISTORY FEED -->
 <div class="card">
-    <h3>Weekly History Log</h3>
+    <h3>Weekly History Log <span style="font-size: 0.8rem; font-weight: normal; color:#666;">(Tap green boxes to edit values live!)</span></h3>
     <div id="weeklyLogContainer" style="overflow-x: auto;"></div>
 </div>
 
-<!-- JSON ARCHIVE TOOLS -->
 <div class="backup-zone">
     <button id="exportBtn" class="secondary">Export JSON Backup</button>
     <button id="importBtn" class="secondary" onclick="document.getElementById('fileInput').click()">Import JSON Backup</button>
@@ -206,12 +220,11 @@
 </div>
 
 <script>
-    // State Keys
     const STORAGE_KEY_HISTORY = 'routine_tracker_history';
     const STORAGE_KEY_ROUTINES = 'routine_tracker_manifest';
 
     let workoutHistory = [];
-    let routines = {}; // Structure: { "Push Day": ["Bench Press", "Overhead Press"] }
+    let routines = {}; 
     let progressChartInstance = null;
 
     // DOM Elements
@@ -233,7 +246,6 @@
     const exportBtn = document.getElementById('exportBtn');
     const fileInput = document.getElementById('fileInput');
 
-    // Startup Engine
     window.addEventListener('DOMContentLoaded', () => {
         const savedHistory = localStorage.getItem(STORAGE_KEY_HISTORY);
         const savedRoutines = localStorage.getItem(STORAGE_KEY_ROUTINES);
@@ -243,10 +255,10 @@
 
         updateRoutinesUI();
         updateHistoryUI();
-        flashStatus('Database loaded.');
+        flashStatus('Database synchronized.');
     });
 
-    // 1. ROUTINE CREATION & MANAGEMENT
+    // ROUTINE BUILDER METHODS
     addRoutineBtn.addEventListener('click', () => {
         const name = routineNameInput.value.trim();
         if(!name) return alert("Enter a routine name.");
@@ -256,21 +268,19 @@
         routineNameInput.value = '';
         saveRoutines();
         updateRoutinesUI();
-        flashStatus('Routine template added!');
     });
 
     addExerciseToRoutineBtn.addEventListener('click', () => {
         const selectedRoutine = routineSelectAssign.value;
         const exName = assignExerciseName.value.trim();
         
-        if(!selectedRoutine || !exName) return alert("Select a routine and enter an exercise name.");
+        if(!selectedRoutine || !exName) return alert("Select a routine and enter an exercise.");
         if(!routines[selectedRoutine].includes(exName)) {
             routines[selectedRoutine].push(exName);
         }
         assignExerciseName.value = '';
         saveRoutines();
         updateRoutinesUI();
-        flashStatus(`Added to ${selectedRoutine}!`);
     });
 
     function saveRoutines() {
@@ -278,58 +288,43 @@
     }
 
     function updateRoutinesUI() {
-        // Clear old loops
         routineSelectAssign.innerHTML = '<option value="">-- Choose Routine --</option>';
         activeRoutineSelect.innerHTML = '<option value="">-- Select Routine --</option>';
         routineManifest.innerHTML = '<strong>Your Workouts:</strong><br>';
 
-        const routineKeys = Object.keys(routines);
-        if(routineKeys.length === 0) routineManifest.innerHTML += '<span style="color:#999;">No saved routines yet.</span>';
+        Object.keys(routines).forEach(r => {
+            routineSelectAssign.add(new Option(r, r));
+            activeRoutineSelect.add(new Option(r, r));
 
-        routineKeys.forEach(r => {
-            // Dropdown option inserts
-            const opt1 = new Option(r, r);
-            const opt2 = new Option(r, r);
-            routineSelectAssign.add(opt1);
-            activeRoutineSelect.add(opt2);
-
-            // Visual overview dashboard printout
             const div = document.createElement('div');
-            div.style.marginVertical = "5px";
             const exercisesHTML = routines[r].map(ex => `<span class="routine-chip">${escapeHtml(ex)}</span>`).join('');
-            div.innerHTML = `• <strong>${escapeHtml(r)}</strong>: ${exercisesHTML || '<span style="color:#999; font-size:0.8rem;">No exercises saved yet</span>'}`;
+            div.innerHTML = `• <strong>${escapeHtml(r)}</strong>: ${exercisesHTML || '<span style="color:#999; font-size:0.8rem;">Empty</span>'}`;
             routineManifest.appendChild(div);
         });
     }
 
-    // Load selected routine exercises into workflow logger form setup
     activeRoutineSelect.addEventListener('change', () => {
         const selected = activeRoutineSelect.value;
         workoutExerciseSelect.innerHTML = '';
-        
         if(!selected || !routines[selected] || routines[selected].length === 0) {
-            workoutExerciseSelect.innerHTML = '<option value="">-- Choose custom text entry --</option>';
+            workoutExerciseSelect.innerHTML = '<option value="">-- Select Exercise --</option>';
             return;
         }
-
-        routines[selected].forEach(ex => {
-            workoutExerciseSelect.add(new Option(ex, ex));
-        });
+        routines[selected].forEach(ex => workoutExerciseSelect.add(new Option(ex, ex)));
     });
 
-    // 2. LOGGING WORKOUT RECORDS
+    // LOGGING WORKOUT progress 
     workoutForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
         let chosenExercise = workoutExerciseSelect.value;
         const customFallback = customExerciseFallback.value.trim();
         if (customFallback) chosenExercise = customFallback;
-        
-        if(!chosenExercise) return alert("Please select or type an exercise name.");
+        if(!chosenExercise) return alert("Select or type an exercise.");
 
         const weight = parseFloat(document.getElementById('weight').value);
+        const sets = parseInt(document.getElementById('sets').value);
         const reps = parseInt(document.getElementById('reps').value);
-        const estimated1RM = reps === 1 ? weight : weight / (1.0278 - (0.0278 * reps));
 
         const log = {
             id: Date.now(),
@@ -338,22 +333,26 @@
             exerciseKey: chosenExercise.trim().toLowerCase(),
             exerciseDisplay: chosenExercise.trim(),
             weight: weight,
-            sets: parseInt(document.getElementById('sets').value),
+            sets: sets,
             reps: reps,
-            oneRepMax: Math.round(estimated1RM)
+            oneRepMax: calculate1RM(weight, reps)
         };
 
         workoutHistory.unshift(log);
-        localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(workoutHistory));
+        saveHistory();
+        updateHistoryUI();
         
         customExerciseFallback.value = '';
-        document.getElementById('weight').value = '';
-        document.getElementById('sets').value = '';
-        document.getElementById('reps').value = '';
-        
-        updateHistoryUI();
-        flashStatus('Progress tracked!');
+        flashStatus('Initial block recorded!');
     });
+
+    function calculate1RM(weight, reps) {
+        return reps === 1 ? weight : Math.round(weight / (1.0278 - (0.0278 * reps)));
+    }
+
+    function saveHistory() {
+        localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(workoutHistory));
+    }
 
     function updateHistoryUI() {
         populateAnalyticsDropdown();
@@ -364,40 +363,51 @@
     function populateAnalyticsDropdown() {
         const currentSelection = chartExerciseFilter.value;
         const uniqueKeys = [...new Set(workoutHistory.map(l => l.exerciseKey))];
-        
         chartExerciseFilter.innerHTML = '';
-        if(uniqueKeys.length === 0) {
-            chartExerciseFilter.innerHTML = '<option value="">No History Data</option>';
-            return;
-        }
+        
+        if(uniqueKeys.length === 0) return;
 
         uniqueKeys.forEach(k => {
             const match = workoutHistory.find(l => l.exerciseKey === k);
             chartExerciseFilter.add(new Option(match.exerciseDisplay, k));
         });
-
         if(uniqueKeys.includes(currentSelection)) chartExerciseFilter.value = currentSelection;
-        else chartExerciseFilter.value = uniqueKeys[0];
     }
 
-    function getYearWeekString(dateObj) {
-        const d = new Date(dateObj);
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-        const yearStart = new Date(d.getFullYear(), 0, 1);
-        return `${d.getFullYear()}-W${Math.ceil((((d - yearStart) / 86400000) + 1) / 7)}`;
-    }
+    // LIVE INLINE CELL EDITING CONTEXT
+    window.updateInlineField = function(element, id, property) {
+        let value = parseFloat(element.innerText);
+        if (isNaN(value) || value < 0) {
+            alert("Please enter a valid positive number.");
+            updateHistoryUI();
+            return;
+        }
 
-    function getStartOfWeekString(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        return new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
-    }
+        // Locate target node reference index matching row id
+        const targetLog = workoutHistory.find(l => l.id === id);
+        if (targetLog) {
+            targetLog[property] = value;
+            // Recalculate 1-Rep Max instantly on change
+            targetLog.oneRepMax = calculate1RM(targetLog.weight, targetLog.reps);
+            saveHistory();
+            
+            // Fast refresh without stealing keyboard focus if possible
+            populateAnalyticsDropdown();
+            updateChart();
+            
+            // Dynamically refresh the computed 1RM text field directly on the current row item
+            const row = element.parentElement.parentElement;
+            const cells = row.getElementsByTagName('td');
+            if(cells[4]) cells[4].innerText = targetLog.oneRepMax ? targetLog.oneRepMax + ' max' : '--';
+            
+            flashStatus('Saved change live.');
+        }
+    };
 
     function renderChronologicalWeeks() {
         weeklyLogContainer.innerHTML = '';
         if(workoutHistory.length === 0) {
-            weeklyLogContainer.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#999;">No logged records found.</div>';
+            weeklyLogContainer.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#999;">No logged workouts yet.</div>';
             return;
         }
 
@@ -423,7 +433,8 @@
                         <th>Date</th>
                         <th>Exercise</th>
                         <th>Weight</th>
-                        <th>Volume</th>
+                        <th>Sets</th>
+                        <th>Reps</th>
                         <th>Est. 1RM</th>
                         <th>Action</th>
                     </tr>
@@ -437,9 +448,10 @@
                 tr.innerHTML = `
                     <td>${log.date}</td>
                     <td><strong>${escapeHtml(log.exerciseDisplay)}</strong></td>
-                    <td>${log.weight}</td>
-                    <td>${log.sets} x ${log.reps}</td>
-                    <td>${log.oneRepMax ? log.oneRepMax + ' max' : '--'}</td>
+                    <td><div class="editable-cell" contenteditable="true" inputmode="decimal" onblur="updateInlineField(this, ${log.id}, 'weight')">${log.weight}</div></td>
+                    <td><div class="editable-cell" contenteditable="true" inputmode="numeric" onblur="updateInlineField(this, ${log.id}, 'sets')">${log.sets}</div></td>
+                    <td><div class="editable-cell" contenteditable="true" inputmode="numeric" onblur="updateInlineField(this, ${log.id}, 'reps')">${log.reps}</div></td>
+                    <td style="color:#666;">${log.oneRepMax ? log.oneRepMax + ' max' : '--'}</td>
                     <td><button class="danger" onclick="deleteLog(${log.id})">Del</button></td>
                 `;
                 tbody.appendChild(tr);
@@ -450,16 +462,27 @@
         });
     }
 
+    function getYearWeekString(dateObj) {
+        const d = new Date(dateObj);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        const yearStart = new Date(d.getFullYear(), 0, 1);
+        return `${d.getFullYear()}-W${Math.ceil((((d - yearStart) / 86400000) + 1) / 7)}`;
+    }
+
+    function getStartOfWeekString(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        return new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+    }
+
     window.deleteLog = function(id) {
         workoutHistory = workoutHistory.filter(l => l.id !== id);
-        localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(workoutHistory));
+        saveHistory();
         updateHistoryUI();
-        flashStatus('Set deleted.');
     };
 
-    // 3. CHARTING ENGINE
-    chartExerciseFilter.addEventListener('change', updateChart);
-    
+    // CHART GENERATION
     function updateChart() {
         const ctx = document.getElementById('progressChart').getContext('2d');
         const selectedKey = chartExerciseFilter.value;
@@ -481,7 +504,7 @@
                 datasets: [{
                     data: points,
                     borderColor: '#0071e3',
-                    backgroundColor: 'rgba(0, 113, 227, 0.06)',
+                    backgroundColor: 'rgba(0, 113, 227, 0.05)',
                     borderWidth: 2,
                     tension: 0.15,
                     fill: true
@@ -499,14 +522,16 @@
         });
     }
 
-    // 4. BACKUP ENGINE (COMPOUND LOG EXPORT)
+    chartExerciseFilter.addEventListener('change', updateChart);
+
+    // EXPORT & IMPORT BACKUPS
     exportBtn.addEventListener('click', () => {
         const payload = { history: workoutHistory, templates: routines };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `workout-compound-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `workout-live-backup-${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -523,12 +548,12 @@
                 if(parsed.history && parsed.templates) {
                     workoutHistory = parsed.history;
                     routines = parsed.templates;
-                    localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(workoutHistory));
-                    localStorage.setItem(STORAGE_KEY_ROUTINES, JSON.stringify(routines));
+                    saveHistory();
+                    saveRoutines();
                     updateRoutinesUI();
                     updateHistoryUI();
-                    flashStatus('Backup Restored!');
-                } else { alert("Malformed custom backup layout schema."); }
+                    flashStatus('Data Restored!');
+                }
             } catch(err) { alert("Failed to interpret data file."); }
         };
         reader.readAsText(file);
@@ -537,7 +562,7 @@
 
     function flashStatus(text) {
         statusLabel.textContent = text;
-        setTimeout(() => { if(statusLabel.textContent === text) statusLabel.textContent = ''; }, 3000);
+        setTimeout(() => { if(statusLabel.textContent === text) statusLabel.textContent = ''; }, 2500);
     }
 
     function escapeHtml(str) {
